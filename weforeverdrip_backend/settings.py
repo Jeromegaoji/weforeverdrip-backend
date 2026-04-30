@@ -5,6 +5,7 @@ Production-ready configuration with PostgreSQL, JWT, and custom user model.
 
 from pathlib import Path
 from decouple import config, Csv
+import os
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,6 +14,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Application definition
 INSTALLED_APPS = [
@@ -40,8 +45,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # CORS first
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -70,15 +76,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'weforeverdrip_backend.wsgi.application'
 
 # Database - PostgreSQL
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE':   'django.db.backends.postgresql',
-        'NAME':     config('DB_NAME',     default='wood_db'),
-        'USER':     config('DB_USER',     default='wood_user'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST':     config('DB_HOST',     default='localhost'),
-        'PORT':     config('DB_PORT',     default='5432'),
-    }
+    'default': dj_database_url.config(
+        default=(
+            f"postgresql://{config('DB_USER', default='wood_user')}"
+            f":{config('DB_PASSWORD', default='')}"
+            f"@{config('DB_HOST', default='localhost')}"
+            f":{config('DB_PORT', default='5432')}"
+            f"/{config('DB_NAME', default='wood_db')}"
+        ),
+        conn_max_age=600,
+        ssl_require=False,
+    )
 }
 
 # Custom User Model
@@ -109,6 +120,7 @@ USE_TZ = True
 # Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
 MEDIA_URL = '/media/'
