@@ -1,1 +1,1 @@
-web: gunicorn weforeverdrip_backend.wsgi:application --bind 0.0.0.0:$PORT
+web: gunicorn weforeverdrip_backend.wsgi --workers 1 --threads 2 --timeout 120
