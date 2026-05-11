@@ -33,6 +33,7 @@ class ProductSerializer(serializers.ModelSerializer):
     compare_price_naira = serializers.SerializerMethodField(read_only=True)
     is_on_sale = serializers.SerializerMethodField(read_only=True)
     primary_image = serializers.SerializerMethodField(read_only=True)
+    variants = ProductVariantSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -50,6 +51,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'is_featured',
             'created_at',
             'primary_image',
+            'variants'
         ]
 
     def get_price_naira(self, instance):
