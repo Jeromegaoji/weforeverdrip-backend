@@ -17,27 +17,33 @@ from .views import (
     AdminInventoryUpdateView,
     AdminCustomerListView,
     AdminCustomerDetailView,
+    ConfirmPaymentView,
 )
 
 urlpatterns = [
     # Dashboard stats and analytics
-    path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
-    path('dashboard/orders/recent/', RecentOrdersView.as_view(), name='dashboard-recent-orders'),
-    path('dashboard/low-stock/', LowStockView.as_view(), name='dashboard-low-stock'),
-    path('dashboard/top-products/', TopProductsView.as_view(), name='dashboard-top-products'),
-    path('dashboard/order-breakdown/', OrderStatusBreakdownView.as_view(), name='dashboard-order-breakdown'),
-    path('dashboard/revenue/', RevenueByDayView.as_view(), name='dashboard-revenue'),
-    
+    path('dashboard/stats/',           DashboardStatsView.as_view(),         name='dashboard-stats'),
+    path('dashboard/orders/recent/',   RecentOrdersView.as_view(),           name='dashboard-recent-orders'),
+    path('dashboard/low-stock/',       LowStockView.as_view(),               name='dashboard-low-stock'),
+    path('dashboard/top-products/',    TopProductsView.as_view(),            name='dashboard-top-products'),
+    path('dashboard/order-breakdown/', OrderStatusBreakdownView.as_view(),   name='dashboard-order-breakdown'),
+    path('dashboard/revenue/',         RevenueByDayView.as_view(),           name='dashboard-revenue'),
+
     # Admin orders management
-    path('orders/', AdminOrderListView.as_view(), name='admin-orders-list'),
-    path('orders/<str:order_number>/', AdminOrderDetailView.as_view(), name='admin-orders-detail'),
-    path('orders/<str:order_number>/status/', AdminUpdateOrderStatusView.as_view(), name='admin-orders-update-status'),
-    
+    path('orders/',
+         AdminOrderListView.as_view(),        name='admin-orders-list'),
+    path('orders/<str:order_number>/',
+         AdminOrderDetailView.as_view(),      name='admin-orders-detail'),
+    path('orders/<str:order_number>/status/',
+         AdminUpdateOrderStatusView.as_view(), name='admin-orders-update-status'),
+    path('orders/<str:order_number>/confirm-payment/',
+         ConfirmPaymentView.as_view(),         name='admin-confirm-payment'),
+
     # Admin inventory management
-    path('inventory/', AdminInventoryView.as_view(), name='admin-inventory-list'),
+    path('inventory/',          AdminInventoryView.as_view(),       name='admin-inventory-list'),
     path('inventory/<int:pk>/', AdminInventoryUpdateView.as_view(), name='admin-inventory-update'),
-    
+
     # Admin customer management
-    path('customers/', AdminCustomerListView.as_view(), name='admin-customers-list'),
-    path('customers/<int:pk>/', AdminCustomerDetailView.as_view(), name='admin-customers-detail'),
+    path('customers/',          AdminCustomerListView.as_view(),    name='admin-customers-list'),
+    path('customers/<int:pk>/', AdminCustomerDetailView.as_view(),  name='admin-customers-detail'),
 ]

@@ -143,6 +143,14 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '20/hour',
+        'user': '200/hour',
+    },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
@@ -167,4 +175,13 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'Backend API for WEFOREVERDRIP streetwear. Enugu, Nigeria 🇳🇬',
     'VERSION':     '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+}
+
+# Bank Transfer Payment Details
+# Set these in your .env — no code change needed when account details change
+BANK_TRANSFER_DETAILS = {
+    'bank_name':       config('BANK_NAME', default=''),
+    'account_name':    config('ACCOUNT_NAME', default='WEFOREVERDRIP'),
+    'account_number':  config('ACCOUNT_NUMBER', default=''),
+    'whatsapp_number': config('WHATSAPP_NUMBER', default=''),
 }

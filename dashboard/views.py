@@ -3,6 +3,7 @@ Admin dashboard API views for analytics and management.
 All views require IsStaffOrAdmin permission.
 """
 from datetime import datetime, timedelta
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Count, Sum, F, Q, Avg, Case, When, DecimalField
 from django.db.models.functions import TruncDate, Coalesce
@@ -365,21 +366,18 @@ class AdminUpdateOrderStatusView(UpdateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # If cancelling, restore product stock
+        # If cancelling, restore stock using the FK on each OrderItem.
+        # item.variant is the exact variant that was purchased — size, colour,
+        # everything. This is the correct approach. The previous code used
+        # product__name + .first() which would restore stock to the wrong
+        # variant whenever a product has multiple sizes or colours.
         if new_status == 'cancelled':
-            order_items = order.items.all()
-            for item in order_items:
-                try:
-                    variant_info = item.variant_info or ''
-                    # Parse variant_info to find matching variant
-                    # This is a simplified approach — adapt to your variant_info format
-                    variants = ProductVariant.objects.filter(product__name=item.product_name)
-                    if variants.exists():
-                        variant = variants.first()
-                        variant.stock_quantity += item.quantity
-                        variant.save()
-                except Exception:
-                    pass
+            from django.db import transaction as db_transaction
+            with db_transaction.atomic():
+                for item in order.items.select_related('variant').select_for_update():
+                    if item.variant is not None:
+                        item.variant.stock_quantity += item.quantity
+                        item.variant.save(update_fields=['stock_quantity'])
         
         order.status = new_status
         order.save()
@@ -518,3 +516,38 @@ class AdminCustomerDetailView(APIView):
         }
         
         return Response(data)
+
+
+class ConfirmPaymentView(APIView):
+    """
+    POST: Admin confirms that a bank transfer has been received for an order.
+    Called after the customer sends WhatsApp proof of payment.
+    Sets payment_status → 'paid' and order status → 'confirmed'.
+
+    Endpoint: POST /api/v1/admin/orders/{order_number}/confirm-payment/
+    Permission: IsStaffOrAdmin
+    """
+    permission_classes = [IsStaffOrAdmin]
+
+    def post(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number)
+
+        if order.status == 'cancelled':
+            return Response(
+                {'detail': 'Cannot confirm payment for a cancelled order.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if order.payment_status == 'paid':
+            return Response(
+                {'detail': f'Order {order_number} is already marked as paid.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        order.payment_status = 'paid'
+        order.status = 'confirmed'
+        order.save(update_fields=['payment_status', 'status', 'updated_at'])
+
+        return Response({
+            'message': f'Payment confirmed for order {order_number}.',
+            'order': AdminOrderDetailSerializer(order).data,
+        })

@@ -1,5 +1,5 @@
+import uuid
 import datetime
-import random
 
 from django.conf import settings
 from django.db import models
@@ -15,10 +15,7 @@ class Cart(models.Model):
 
     @property
     def total(self):
-        total = 0
-        for item in self.items.all():
-            total += item.subtotal
-        return total
+        return sum(item.subtotal for item in self.items.all())
 
     @property
     def total_naira(self):
@@ -52,20 +49,25 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        ('pending',   'Pending'),
         ('confirmed', 'Confirmed'),
-        ('shipped', 'Shipped'),
+        ('shipped',   'Shipped'),
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
     ]
     PAYMENT_STATUS_CHOICES = [
-        ('unpaid', 'Unpaid'),
-        ('paid', 'Paid'),
+        ('unpaid',   'Unpaid'),
+        ('paid',     'Paid'),
         ('refunded', 'Refunded'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='orders')
-    order_number = models.CharField(max_length=20, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True,
+        related_name='orders'
+    )
+    # max_length raised to 30 to safely hold WFD-YYYYMMDD-XXXXXXXX
+    order_number = models.CharField(max_length=30, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
     payment_reference = models.CharField(max_length=255, blank=True)
@@ -87,7 +89,9 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         if not self.order_number:
             date_str = datetime.date.today().strftime('%Y%m%d')
-            self.order_number = f"WFD-{date_str}-{random.randint(1000, 9999)}"
+            # 8 hex chars from uuid4 → ~4 billion combinations per day, no collision risk
+            suffix = str(uuid.uuid4()).replace('-', '')[:8].upper()
+            self.order_number = f"WFD-{date_str}-{suffix}"
         super().save(*args, **kwargs)
 
 
