@@ -1,0 +1,46 @@
+# fly.toml app configuration file for weforeverdrip
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'weforeverdrip'
+primary_region = 'lhr'
+
+# The shell to open when using `fly ssh console`.
+# Our Dockerfile sets WORKDIR /app — so manage.py lives at /app/manage.py.
+console_command = 'python /app/manage.py shell'
+
+[build]
+
+[deploy]
+  # release_command runs BEFORE the new version goes live, on every deploy.
+  # If this fails, the deploy is aborted and the old version keeps running.
+  #
+  # migrate:                     creates/updates database tables to match the current models
+  # seed_products:                populates the 10 W∞D products (safe to re-run — uses get_or_create)
+  # create_superuser_if_missing: creates/repairs the admin account from DJANGO_SUPERUSER_* secrets
+  #                              (safe to re-run — no-ops if nothing changed, skips if secrets unset)
+  release_command = '/bin/sh -c "python manage.py migrate --noinput && python manage.py seed_products && python manage.py create_superuser_if_missing"'
+
+[env]
+  PORT = '8000'
+
+[http_service]
+  internal_port = 8000
+  force_https = true               # redirect all http:// → https:// automatically
+  auto_stop_machines = 'stop'      # machine sleeps when no traffic (free tier)
+  auto_start_machines = true       # machine wakes on first request
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256
+
+[[statics]]
+  # Fly.io's CDN serves these files directly, bypassing Django/Gunicorn entirely.
+  # collectstatic (run during Docker build) writes to /app/staticfiles/
+  # WhiteNoise also serves these as a fallback — both mechanisms are in place.
+  guest_path = '/app/staticfiles'
+  url_prefix = '/static/'
