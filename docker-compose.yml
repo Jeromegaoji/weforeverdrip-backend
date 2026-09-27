@@ -1,0 +1,80 @@
+# ── docker-compose.yml ────────────────────────────────────────────────────────
+#
+# FOR LOCAL TESTING ONLY. This file is not used in production.
+#
+# It starts two containers:
+#   db  — a local PostgreSQL 16 container (your local dev database)
+#   web — your Django app, built from the Dockerfile
+#
+# Production stack:
+#   Django runs on Fly.io, PostgreSQL lives on Neon. This file is irrelevant there.
+#
+# Common commands:
+#   docker-compose up --build          first run, or after changing requirements.txt
+#   docker-compose up                  subsequent runs (uses cached build)
+#   docker-compose down                stop and remove containers
+#   docker-compose exec web python manage.py migrate
+#   docker-compose exec web python manage.py createsuperuser
+#   docker-compose exec web python manage.py seed_products
+#
+
+version: '3.8'
+
+services:
+
+  # ── PostgreSQL container ─────────────────────────────────────────────────────
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: wfd_db
+      POSTGRES_USER: wfd_user
+      POSTGRES_PASSWORD: "03wfd2026"
+    ports:
+      - "5433:5432"   # host port 5433 → container port 5432
+                      # Using 5433 avoids conflict if you have local Postgres on 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # data persists between restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wfd_user -d wfd_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Django container ─────────────────────────────────────────────────────────
+  web:
+    build: .
+    # Override the Dockerfile CMD for local development:
+    # runserver gives hot-reload and pretty error pages. Never use in production.
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      # Override DJANGO_SETTINGS_MODULE from the Dockerfile — use base settings
+      # for local dev (DEBUG=True, no HSTS, no forced SSL).
+      DJANGO_SETTINGS_MODULE: weforeverdrip_backend.settings
+      SECRET_KEY: weforeverdrip-wfd-dev-secret-key-change-this-in-production-2025
+      DEBUG: "True"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+
+      # DB_HOST must be 'db' — Docker's internal DNS resolves service names
+      # to container IPs automatically. 'localhost' would point to the web
+      # container itself, not the db container.
+      DB_HOST: db
+      DB_NAME: wfd_db
+      DB_USER: wfd_user
+      DB_PASSWORD: "03wfd2026"
+      DB_PORT: "5432"
+
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      JWT_ACCESS_TOKEN_LIFETIME_MINUTES: "60"
+      JWT_REFRESH_TOKEN_LIFETIME_DAYS: "7"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount local source code into the container.
+      # Changes to .py files reflect instantly without rebuilding the image.
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy   # wait for Postgres to pass healthcheck before starting Django
+
+volumes:
+  postgres_data:
