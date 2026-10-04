@@ -185,3 +185,10 @@ BANK_TRANSFER_DETAILS = {
     'account_number':  config('ACCOUNT_NUMBER', default=''),
     'whatsapp_number': config('WHATSAPP_NUMBER', default=''),
 }
+
+
+# Flat shipping fee charged on every order, in kobo (300000 kobo = N3,000).
+# To change it without a code change:  fly secrets set SHIPPING_FEE_KOBO=250000
+# The checkout page in the frontend shows a matching number (SHIPPING_FEE_NAIRA),
+# so update that too if you change this.
+SHIPPING_FEE_KOBO = config('SHIPPING_FEE_KOBO', default=300000, cast=int)

@@ -133,8 +133,8 @@ class TestPlaceOrder:
         assert response.data['order_number'].startswith('WFD-')
         # Verify pricing
         assert response.data['subtotal'] > 0
-        assert response.data['shipping_fee'] == 150000  # 1,500 Naira in Kobo
-        assert response.data['total'] == response.data['subtotal'] + 150000
+        assert response.data['shipping_fee'] == 300000  # 3,000 Naira in Kobo
+        assert response.data['total'] == response.data['subtotal'] + 300000
 
     def test_place_order_empty_cart(self, auth_client, regular_user):
         """Placing order with empty cart should return 400."""

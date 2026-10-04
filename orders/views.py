@@ -165,6 +165,7 @@ class PlaceOrderView(generics.GenericAPIView):
                 notes=notes,
                 payment_status='unpaid',
                 status='pending',
+                shipping_fee=settings.SHIPPING_FEE_KOBO,
             )
 
             subtotal = 0
